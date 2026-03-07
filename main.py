@@ -1,12 +1,31 @@
-from config import NAME
-from agents.cf_contest_agent import get_recent_codeforces_contests
+from agents.codeforces_agent import generate_codeforces_report
+from agents.codechef_agent import generate_codechef_report
 
+def main():
+    cf_handle = "prasan23bad042"   # Your Codeforces handle
+    cc_handle = "prasan23bad042"        # Replace with your CodeChef handle (using sinus_070 for demo)
+    
+    print("="*40)
+    print("      WEEKLY CP REPORT SUMMARY")
+    print("="*40)
+    
+    # Generate Codeforces Report
+    try:
+        generate_codeforces_report(cf_handle)
+    except Exception as e:
+        print(f"Error in Codeforces report: {e}")
+    
+    print("\n" + "="*40 + "\n")
+    
+    # Generate CodeChef Report
+    try:
+        generate_codechef_report(cc_handle)
+    except Exception as e:
+        print(f"Error in CodeChef report: {e}")
+        
+    print("\n" + "="*40)
+    print("      REPORT GENERATION COMPLETE")
+    print("="*40)
 
-print(f"\nGenerating Weekly Report For: {NAME}\n")
-
-contests = get_recent_codeforces_contests()
-
-print("Recent Codeforces Contests (Last 7 Days):\n")
-
-for contest in contests:
-    print(f"{contest['name']} - {contest['start_time']}")
+if __name__ == "__main__":
+    main()
