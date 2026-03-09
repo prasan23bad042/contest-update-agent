@@ -1,16 +1,24 @@
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 from agents.codeforces_agent import generate_codeforces_report
 from agents.codechef_agent import generate_codechef_report
 from agents.leetcode_module import generate_leetcode_report
 import threading
 
 app = Flask(__name__)
+CORS(app) # Enable CORS for all routes
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
+@app.route("/health")
+@app.route("/api/health")
+def health():
+    return jsonify({"status": "ok", "message": "API is running"})
+
 @app.route("/generate", methods=["POST"])
+@app.route("/api/generate", methods=["POST"])
 def generate():
     data = request.json
     cf_id = data.get("cf_id")

@@ -82,6 +82,11 @@
                     body: JSON.stringify({ cf_id, cc_id, lc_id })
                 });
 
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}...`);
+                }
+
                 const reports = await response.json();
 
                 let textReport = `Weekly CP Report\n Name: ${user_name}\n\n`;
