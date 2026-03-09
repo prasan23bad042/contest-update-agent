@@ -3,13 +3,17 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, UTC
 import json
 import re
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
+try:
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from webdriver_manager.chrome import ChromeDriverManager
+    SELENIUM_AVAILABLE = True
+except ImportError:
+    SELENIUM_AVAILABLE = False
 import time
 
 def fetch_recent_contests(days=10):
@@ -113,10 +117,12 @@ def get_codechef_problem_count_selenium(handle, contest_code, driver):
     """
     Uses Selenium to fetch problem count from the contest ranking page.
     """
+    if not SELENIUM_AVAILABLE:
+        return "N/A"
+        
     url = f"https://www.codechef.com/rankings/{contest_code}"
-    driver.get(url)
-    
     try:
+        driver.get(url)
         # Wait for the ranking table or user handle to appear
         WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.XPATH, f"//*[contains(text(), '{handle}')]"))
@@ -126,19 +132,13 @@ def get_codechef_problem_count_selenium(handle, contest_code, driver):
         rows = driver.find_elements(By.CSS_SELECTOR, "tr")
         for row in rows:
             if handle in row.text:
-                # Typically, the score (problems solved) is in one of the columns
-                # We'll look for numeric cells that represent problem count/score
                 cells = row.find_elements(By.CSS_SELECTOR, "td")
                 for cell in cells:
                     cell_text = cell.text.strip()
-                    # Check if cell text is a simple number and not Rank (usually first/second)
                     if cell_text.isdigit():
-                        # We return the first valid numeric score found for that user row
-                        # Usually, for Starters contests, 'Score' is the problem count
                         return int(cell_text)
         return 0
     except Exception as e:
-        # print(f"Error fetching problem count for {contest_code}: {e}")
         return "N/A"
 
 def generate_codechef_report(handle, days=14):
@@ -177,25 +177,31 @@ def generate_codechef_report(handle, days=14):
     if not recent_participation:
         return report_data
 
-    # Initialize Selenium Driver once
-    chrome_options = Options()
-    chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    
+    # Initialize Selenium Driver only if available
     driver = None
+    if SELENIUM_AVAILABLE:
+        try:
+            chrome_options = Options()
+            chrome_options.add_argument("--headless=new")
+            chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+        except Exception as e:
+            print(f"Selenium initialization failed: {e}")
+            driver = None
+
     try:
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-        
         for entry in recent_participation:
             code = entry['code']
             name = entry['name']
             rating_after = entry['rating_after']
             date_str = entry['end_date'].strftime("%Y-%m-%d")
             
-            # Fetch problem count via Selenium
-            problem_count = get_codechef_problem_count_selenium(handle, code, driver)
+            # Fetch problem count via Selenium if driver exists, else fallback
+            problem_count = "N/A"
+            if driver:
+                problem_count = get_codechef_problem_count_selenium(handle, code, driver)
             
             report_data["contests"].append({
                 "name": f"{code} ({name})",
@@ -206,7 +212,7 @@ def generate_codechef_report(handle, days=14):
             })
             
     except Exception as e:
-        report_data["error"] = f"Error initializing Selenium: {e}"
+        print(f"Error during contest processing: {e}")
     finally:
         if driver:
             driver.quit()
