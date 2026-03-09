@@ -47,25 +47,28 @@ def fetch_leetcode_contest_data(username):
 def generate_leetcode_report(username):
     """
     Generates a report of LeetCode contest participation for the last 14 days.
+    Returns a dictionary with the report data.
     """
-    print(f"\nFetching LeetCode data for: {username}...")
+    report_data = {
+        "platform": "LeetCode",
+        "handle": username,
+        "current_rating": "N/A",
+        "contests": [],
+        "error": None
+    }
     
     data = fetch_leetcode_contest_data(username)
     
     if not data or "data" not in data:
-        print("Could not fetch LeetCode data. Profile might be private or doesn't exist.")
-        return
+        report_data["error"] = "Could not fetch LeetCode data. Profile might be private or doesn't exist."
+        return report_data
 
     user_data = data["data"]
     ranking_info = user_data.get("userContestRanking")
     history = user_data.get("userContestRankingHistory", [])
 
     if ranking_info:
-        print(f"Current Rating: {int(ranking_info['rating'])}")
-    else:
-        print("Current Rating: N/A (User might not have participated in contests yet)")
-
-    print(f"\nRecent LeetCode Contests (Past 2 Weeks):\n")
+        report_data["current_rating"] = int(ranking_info['rating'])
 
     now = datetime.now(timezone.utc)
     two_weeks_ago = now - timedelta(days=14)
@@ -78,8 +81,7 @@ def generate_leetcode_report(username):
                 recent_contests.append(entry)
 
     if not recent_contests:
-        print("No contests in the last 14 days.")
-        return
+        return report_data
 
     # LeetCode history is usually sorted chronologically, let's reverse to show most recent first
     recent_contests.reverse()
@@ -88,14 +90,23 @@ def generate_leetcode_report(username):
         title = entry["contest"]["title"]
         start_time = datetime.fromtimestamp(entry["contest"]["startTime"], timezone.utc).strftime("%Y-%m-%d")
         
-        if entry["attended"]:
+        participated = entry["attended"]
+        rating_after = "N/A"
+        problems_solved = 0
+        
+        if participated:
             rating_after = int(entry["rating"])
             problems_solved = entry["problemsSolved"]
-            print(f"{title} - {start_time}")
-            print(f"   ↳ Rating after contest: {rating_after}")
-            print(f"   ↳ Problems Solved: {problems_solved}")
-        else:
-            print(f"{title} - {start_time} - Not Participated ❌")
+        
+        report_data["contests"].append({
+            "name": title,
+            "date": start_time,
+            "participated": participated,
+            "rating_after": rating_after,
+            "solved": problems_solved
+        })
+
+    return report_data
 
 if __name__ == "__main__":
     generate_leetcode_report("prasan23bad042")

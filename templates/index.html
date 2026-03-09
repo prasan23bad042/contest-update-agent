@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly CP Report | Professional Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>CP Report Agent</h1>
+            <p>Generate your weekly competitive programming performance summary</p>
+        </header>
+
+        <section class="form-card">
+            <div class="input-group">
+                <div class="input-field">
+                    <label for="user_name">Full Name</label>
+                    <input type="text" id="user_name" placeholder="Enter your name" value="Prasanna Venkataraman S">
+                </div>
+                <div class="input-field">
+                    <label for="cf_id">Codeforces ID</label>
+                    <input type="text" id="cf_id" placeholder="Enter handle" value="prasan23bad042">
+                </div>
+                <div class="input-field">
+                    <label for="cc_id">CodeChef ID</label>
+                    <input type="text" id="cc_id" placeholder="Enter handle" value="prasan23bad042">
+                </div>
+                <div class="input-field">
+                    <label for="lc_id">LeetCode ID</label>
+                    <input type="text" id="lc_id" placeholder="Enter handle" value="prasan23bad042">
+                </div>
+            </div>
+            <button id="generate-btn">
+                <span>Generate Reports</span>
+                <div id="loading" class="loading-spinner" style="display: none;"></div>
+            </button>
+        </section>
+
+        <section id="results" class="results-section">
+            <!-- Results will be injected here -->
+        </section>
+
+        <section id="text-report-section" class="text-report-card" style="display: none;">
+            <div class="text-report-header">
+                <h2>📋 Text Mode Report</h2>
+                <button id="copy-btn" class="copy-btn">
+                    <span>Copy to Clipboard</span>
+                </button>
+            </div>
+            <textarea id="text-mode-area" readonly></textarea>
+        </section>
+    </div>
+
+    <script>
+        document.getElementById('generate-btn').addEventListener('click', async () => {
+            const user_name = document.getElementById('user_name').value;
+            const cf_id = document.getElementById('cf_id').value;
+            const cc_id = document.getElementById('cc_id').value;
+            const lc_id = document.getElementById('lc_id').value;
+
+            const btn = document.getElementById('generate-btn');
+            const loading = document.getElementById('loading');
+            const resultsDiv = document.getElementById('results');
+            const textSection = document.getElementById('text-report-section');
+            const textArea = document.getElementById('text-mode-area');
+
+            // UI State: Loading
+            btn.disabled = true;
+            loading.style.display = 'block';
+            resultsDiv.innerHTML = '';
+            textSection.style.display = 'none';
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cf_id, cc_id, lc_id })
+                });
+
+                const reports = await response.json();
+
+                let textReport = `Weekly CP Report\n Name: ${user_name}\n\n`;
+
+                Object.values(reports).forEach(report => {
+                    renderReport(report);
+                    textReport += formatTextReport(report);
+                });
+
+                textArea.value = textReport;
+                textSection.style.display = 'block';
+
+            } catch (error) {
+                alert('Error generating report: ' + error);
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        document.getElementById('copy-btn').addEventListener('click', () => {
+            const textArea = document.getElementById('text-mode-area');
+            textArea.select();
+            document.execCommand('copy');
+            const btn = document.getElementById('copy-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span>✅ Copied!</span>';
+            setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+        });
+
+        function formatTextReport(report) {
+            let text = `${report.platform}\n`;
+            text += `📈 Rating: ${report.current_rating}\n`;
+
+            if (report.error) {
+                text += `❌ Error: ${report.error}\n\n`;
+                return text;
+            }
+
+            if (report.contests.length === 0) {
+                text += `🤷 No contests in last 2 weeks.\n\n`;
+            } else {
+                report.contests.forEach(c => {
+                    text += `${c.name}\n`;
+                    text += `${c.date}\n`;
+                    if (c.participated) {
+                        text += `⭐ New Rating: ${c.rating_after}`;
+                        if (report.platform !== 'CodeChef') {
+                            text += `|🧩 Solved: ${c.solved}`;
+                        }
+                        text += `\n`;
+                    } else {
+                        text += `❌ Not Participated\n`;
+                    }
+                });
+                text += `\n`;
+            }
+            return text;
+        }
+
+        function renderReport(report) {
+            const resultsDiv = document.getElementById('results');
+
+            const card = document.createElement('div');
+            card.className = 'platform-card';
+
+            let profileUrl = '';
+            if (report.platform === 'Codeforces') profileUrl = `https://codeforces.com/profile/${report.handle}`;
+            if (report.platform === 'CodeChef') profileUrl = `https://www.codechef.com/users/${report.handle}`;
+            if (report.platform === 'LeetCode') profileUrl = `https://leetcode.com/${report.handle}`;
+
+            let contestsHtml = '';
+            if (report.error) {
+                contestsHtml = `<div class="status-badge status-error">Error: ${report.error}</div>`;
+            } else if (report.contests.length === 0) {
+                contestsHtml = `<p class="text-muted">No contests found in the last 10-14 days.</p>`;
+            } else {
+                contestsHtml = `
+                    <div class="contest-grid">
+                        ${report.contests.map(c => `
+                            <div class="contest-item">
+                                <div class="contest-name">${c.name}</div>
+                                <div class="contest-meta">
+                                    <span>${c.date}</span>
+                                    <span>${c.participated ?
+                        (report.platform !== 'CodeChef' ? `<span class="status-badge status-success">Solved: ${c.solved}</span>` : `<span class="status-badge status-success">Participated</span>`) :
+                        `<span class="status-badge status-error">Missed</span>`}</span>
+                                </div>
+                                ${c.participated ? `<div style="font-size: 0.75rem; color: var(--accent); margin-top: 0.5rem;">New Rating: ${c.rating_after}</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            card.innerHTML = `
+                <div class="platform-header">
+                    <div>
+                        <h2>${report.platform}</h2>
+                        <a href="${profileUrl}" target="_blank" class="platform-link">View Profile 🔗</a>
+                    </div>
+                    <div class="rating-badge">Rating: ${report.current_rating}</div>
+                </div>
+                ${contestsHtml}
+            `;
+
+            resultsDiv.appendChild(card);
+        }
+    </script>
+</body>
+
+</html>

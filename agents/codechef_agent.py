@@ -144,16 +144,23 @@ def get_codechef_problem_count_selenium(handle, contest_code, driver):
 def generate_codechef_report(handle, days=14):
     """
     Orchestrates the CodeChef report generation using Selenium for problem counts.
+    Returns a dictionary with the report data.
     """
-    print(f"\nFetching CodeChef data for: {handle}...")
+    report_data = {
+        "platform": "CodeChef",
+        "handle": handle,
+        "current_rating": "N/A",
+        "contests": [],
+        "error": None
+    }
     
     user_info = get_user_contest_data(handle)
     
     if not user_info:
-        print("Could not fetch user info for CodeChef.")
-        return
+        report_data["error"] = "Could not fetch user info for CodeChef."
+        return report_data
         
-    print(f"Current Rating: {user_info['current_rating']}")
+    report_data["current_rating"] = user_info['current_rating']
     
     now = datetime.now(UTC)
     cutoff_date = now - timedelta(days=days)
@@ -167,11 +174,8 @@ def generate_codechef_report(handle, days=14):
     # Sort by date descending
     recent_participation.sort(key=lambda x: x['end_date'], reverse=True)
     
-    print(f"\nUser's CodeChef Participation (Past 2 Weeks):\n")
-    
     if not recent_participation:
-        print(f"No contests attended by {handle} in the last {days} days.")
-        return
+        return report_data
 
     # Initialize Selenium Driver once
     chrome_options = Options()
@@ -193,15 +197,21 @@ def generate_codechef_report(handle, days=14):
             # Fetch problem count via Selenium
             problem_count = get_codechef_problem_count_selenium(handle, code, driver)
             
-            print(f"{code} ({name}) - {date_str}")
-            print(f"   ↳ Problems Solved: {problem_count}")
-            print(f"   ↳ Rating after contest: {rating_after}")
+            report_data["contests"].append({
+                "name": f"{code} ({name})",
+                "date": date_str,
+                "participated": True,
+                "rating_after": rating_after,
+                "solved": problem_count
+            })
             
     except Exception as e:
-        print(f"Error initializing Selenium: {e}")
+        report_data["error"] = f"Error initializing Selenium: {e}"
     finally:
         if driver:
             driver.quit()
+    
+    return report_data
 
 if __name__ == "__main__":
     generate_codechef_report("prasan23bad042", days=30)
