@@ -36,17 +36,17 @@ def generate_codeforces_report(handle):
         report_data["error"] = f"Error fetching contests: {e}"
         return report_data
 
-    # Filter last 10 days contests
+    # Filter past contests
     now = datetime.datetime.now(datetime.UTC)
-    ten_days_ago = now - datetime.timedelta(days=10)
-    weekly_contests = []
+    past_contests = []
 
     for contest in all_contests:
         start_time = datetime.datetime.fromtimestamp(contest["startTimeSeconds"], datetime.UTC)
-        if start_time >= ten_days_ago:
-            weekly_contests.append(contest)
+        if start_time <= now:
+            past_contests.append(contest)
 
-    weekly_contests.sort(key=lambda x: x["startTimeSeconds"], reverse=True)
+    past_contests.sort(key=lambda x: x["startTimeSeconds"], reverse=True)
+    weekly_contests = past_contests[:7]
 
     if not weekly_contests:
         return report_data
