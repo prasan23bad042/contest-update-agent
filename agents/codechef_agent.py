@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 import json
 import re
 try:
@@ -36,14 +36,14 @@ def fetch_recent_contests(days=10):
             
         contests = data.get("contests", [])
         recent_contests = []
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         cutoff_date = now - timedelta(days=days)
         
         for contest in contests:
             start_date_str = contest.get("contest_start_date", "")
             try:
                 start_date = datetime.strptime(start_date_str, "%d %b %Y %H:%M")
-                start_date = start_date.replace(tzinfo=UTC)
+                start_date = start_date.replace(tzinfo=timezone.utc)
                 
                 if start_date >= cutoff_date:
                     recent_contests.append({
@@ -91,7 +91,7 @@ def get_user_contest_data(handle):
                         
                         try:
                             end_date = datetime.strptime(end_date_str, "%Y-%m-%d %H:%M:%S")
-                            end_date = end_date.replace(tzinfo=UTC)
+                            end_date = end_date.replace(tzinfo=timezone.utc)
                         except:
                             end_date = None
 
@@ -162,7 +162,7 @@ def generate_codechef_report(handle, days=14):
         
     report_data["current_rating"] = user_info['current_rating']
     
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     cutoff_date = now - timedelta(days=days)
     
     # Filter participation by date

@@ -37,11 +37,11 @@ def generate_codeforces_report(handle):
         return report_data
 
     # Filter past contests
-    now = datetime.datetime.now(datetime.UTC)
+    now = datetime.datetime.now(datetime.timezone.utc)
     past_contests = []
 
     for contest in all_contests:
-        start_time = datetime.datetime.fromtimestamp(contest["startTimeSeconds"], datetime.UTC)
+        start_time = datetime.datetime.fromtimestamp(contest["startTimeSeconds"], datetime.timezone.utc)
         if start_time <= now:
             past_contests.append(contest)
 
@@ -81,7 +81,7 @@ def generate_codeforces_report(handle):
     for contest in weekly_contests:
         contest_id = contest["id"]
         start_time = datetime.datetime.fromtimestamp(
-            contest["startTimeSeconds"], datetime.UTC
+            contest["startTimeSeconds"], datetime.timezone.utc
         ).strftime("%Y-%m-%d %H:%M:%S")
 
         participated = False
