@@ -4,6 +4,7 @@ from agents.codeforces_agent import generate_codeforces_report
 from agents.codechef_agent import generate_codechef_report
 from agents.leetcode_module import generate_leetcode_report
 import threading
+import os
 
 app = Flask(__name__)
 CORS(app) # Enable CORS for all routes
@@ -53,4 +54,5 @@ def generate():
     return jsonify(reports)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)

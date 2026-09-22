@@ -3,3 +3,4 @@ requests
 beautifulsoup4
 serverless-wsgi
 flask-cors
+gunicorn
