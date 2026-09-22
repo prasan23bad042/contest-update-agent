@@ -14,8 +14,15 @@
 <body>
     <div class="container">
         <header>
-            <h1>CP Report Agent</h1>
-            <p>Generate your weekly competitive programming performance summary</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                    <h1>CP Report Agent</h1>
+                    <p>Generate your weekly competitive programming performance summary</p>
+                </div>
+                <div>
+                    <button id="install-btn" class="install-btn" style="display:none;">Install App</button>
+                </div>
+            </div>
         </header>
 
         <section class="form-card">
@@ -194,6 +201,46 @@
         }
     </script>
     <script>
+    (function(){
+      let deferredPrompt = null;
+      const installBtn = document.getElementById('install-btn');
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent the mini-infobar from appearing on mobile
+        e.preventDefault();
+        deferredPrompt = e;
+        if (installBtn) {
+          installBtn.style.display = 'inline-flex';
+        }
+      });
+
+      if (installBtn) {
+        installBtn.addEventListener('click', async function onInstallClick() {
+          if (!deferredPrompt) return;
+          installBtn.disabled = true;
+          deferredPrompt.prompt();
+          const choiceResult = await deferredPrompt.userChoice;
+          // Hide the button regardless of the choice
+          installBtn.style.display = 'none';
+          deferredPrompt = null;
+          installBtn.disabled = false;
+          installBtn.removeEventListener('click', onInstallClick);
+        });
+      }
+
+      window.addEventListener('appinstalled', (evt) => {
+        // Hide the install button once installed and clear prompt
+        if (installBtn) installBtn.style.display = 'none';
+        deferredPrompt = null;
+        console.log('PWA was installed');
+      });
+
+      // If already installed or in standalone, hide the button
+      if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+        if (installBtn) installBtn.style.display = 'none';
+      }
+    })();
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('{{ url_for('static', filename='sw.js') }}')

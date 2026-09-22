@@ -31,36 +31,55 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network-first for API requests, cache-first for navigation and static
   const request = event.request;
   const url = new URL(request.url);
 
-  // For same-origin navigation requests, try network then fallback to cache/offline
+  // For same-origin navigation requests (HTML), try network then fallback to cache/offline
   if (request.mode === 'navigate' || (request.method === 'GET' && request.headers.get('accept') && request.headers.get('accept').includes('text/html'))) {
     event.respondWith(
       fetch(request).then((response) => {
-        // put a copy in cache
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+        // put a copy in cache for offline navigations
+        try {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+        } catch (e) { /* ignore clone/cache errors */ }
         return response;
       }).catch(() => caches.match(request).then(r => r || caches.match(OFFLINE_URL)))
     );
     return;
   }
 
-  // For other GET requests, try cache then network
+  // Exclude API or dynamic endpoints from cache-first behavior.
+  // Use network-first for API calls (e.g., /generate, /api/*)
+  const isSameOrigin = url.origin === self.location.origin;
+  const isApiCall = isSameOrigin && (url.pathname.startsWith('/generate') || url.pathname.startsWith('/api'));
+
+  if (request.method === 'GET' && isApiCall) {
+    event.respondWith(
+      fetch(request).then((response) => {
+        // do not cache API responses (or you could cache selectively)
+        return response;
+      }).catch(() => {
+        // fallback to offline page when network unavailable
+        return caches.match(OFFLINE_URL);
+      })
+    );
+    return;
+  }
+
+  // For other GET requests (static assets), try cache then network
   if (request.method === 'GET') {
     event.respondWith(
       caches.match(request).then((cached) => {
-        return cached || fetch(request).then((response) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
           // update cache for future
-          const respClone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, respClone));
+          try {
+            const respClone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, respClone));
+          } catch (e) { /* ignore */ }
           return response;
-        }).catch(() => {
-          // if requested a resource and not cached, try manifest or icons
-          return caches.match('/static/manifest.json');
-        });
+        }).catch(() => caches.match('/static/manifest.json'));
       })
     );
   }

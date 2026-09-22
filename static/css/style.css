@@ -275,6 +275,17 @@ button:disabled {
     background: #059669;
 }
 
+.install-btn{
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--text-main);
+    padding: 0.5rem 0.9rem;
+    border-radius: 0.6rem;
+    cursor: pointer;
+    font-weight:700;
+}
+.install-btn:hover{ background: rgba(255,255,255,0.03); }
+
 @keyframes spin {
     to {
         transform: rotate(360deg);
