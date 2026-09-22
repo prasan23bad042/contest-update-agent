@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 24 24" fill="none" stroke="#0b5fff" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="2" y="2" width="20" height="20" rx="3" ry="3" fill="#ffffff" />
+  <path d="M3 7h18" stroke="#0b5fff" />
+  <circle cx="12" cy="13" r="6" fill="#0b5fff" stroke="none" />
+  <text x="12" y="19" font-size="3" text-anchor="middle" fill="#0b5fff" font-family="Arial">CP</text>
+</svg>
